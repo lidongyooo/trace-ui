@@ -19,12 +19,19 @@ Thumbs.db
 
 # Tauri generated
 gen/schemas/
+src-tauri/gen/schemas/
 
-# Claude
+# Claude Code
 CLAUDE.md
+.claude/
 
 # Superpowers
 .superpowers/
+
+# AI workflow artifacts
+task_plan.md
+findings.md
+progress.md
 
 # Docs（仅允许 docs/images/）
 docs/*

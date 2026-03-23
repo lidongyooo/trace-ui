@@ -27,6 +27,8 @@ import { useFoldState } from "./hooks/useFoldState";
 import { useFuncRenameStore } from "./hooks/useFuncRenameStore";
 import { usePreferences, saveSessionSnapshot, loadSessionSnapshot } from "./hooks/usePreferences";
 import { useHighlights } from "./hooks/useHighlights";
+import { useMcpStatus } from "./hooks/useMcpStatus";
+import McpIndicator from "./components/McpIndicator";
 import type { SessionSnapshot } from "./hooks/usePreferences";
 import type { CallTreeNodeDto, SearchMatch, CryptoScanResult } from "./types/trace";
 import type { SearchOptions } from "./components/SearchBar";
@@ -61,6 +63,7 @@ const PANEL_WINDOW_TITLES: Record<string, string> = {
 function App() {
   const { toasts, showToast } = useToast();
   const { preferences, updatePreferences } = usePreferences();
+  const { mcpStatus, startMcp, stopMcp } = useMcpStatus();
 
   const {
     totalLines,
@@ -402,6 +405,15 @@ function App() {
       invoke("set_cache_dir", { path: dir }).catch(console.error);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 启动 MCP 服务器（根据偏好设置）
+  useEffect(() => {
+    if (preferences.autoStartMcp) {
+      const port = preferences.mcpPort ?? undefined;
+      startMcp(port).catch(console.error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅启动时执行一次
+  }, []);
 
   // 启动时恢复上次的会话
   const hasAutoOpened = useRef(false);
@@ -1211,7 +1223,15 @@ function App() {
             </>
           )}
         </span>
-        <StatusBarSelection />
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <McpIndicator
+            mcpStatus={mcpStatus}
+            onStart={startMcp}
+            onStop={stopMcp}
+            configuredPort={preferences.mcpPort}
+          />
+          <StatusBarSelection />
+        </span>
       </div>
       {taintDialogSeq !== null && (
         <TaintConfigDialog

@@ -15,6 +15,8 @@ export interface Preferences {
   showSoName: boolean;
   showAbsAddress: boolean;
   addrColorHighlight: boolean;
+  mcpPort: number | null; // null = use default port (19821)
+  autoStartMcp: boolean;
 }
 
 export interface TaintConfig {
@@ -48,6 +50,8 @@ const DEFAULTS: Preferences = {
   showSoName: false,
   showAbsAddress: false,
   addrColorHighlight: false,
+  mcpPort: null,
+  autoStartMcp: true,
 };
 
 function load(): Preferences {
