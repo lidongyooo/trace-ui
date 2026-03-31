@@ -3,6 +3,7 @@ import type { TraceLine } from "../types/trace";
 import type { ResolvedRow } from "../hooks/useFoldState";
 import { getSharedColors, getMinimapColors } from "../utils/canvasColors";
 import { useThemeId } from "../stores/themeStore";
+import { canvasDpr } from "../utils/platform";
 
 const MINIMAP_WIDTH = 70;
 const MINIMAP_ROW_HEIGHT = 2;
@@ -79,7 +80,7 @@ export default function Minimap({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || height === 0) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasDpr();
     canvas.width = MINIMAP_WIDTH * dpr;
     canvas.height = height * dpr;
     canvas.style.width = MINIMAP_WIDTH + "px";
@@ -130,7 +131,7 @@ export default function Minimap({
     if (!canvas || height === 0) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasDpr();
     ctx.save();
     ctx.scale(dpr, dpr);
 

@@ -17,6 +17,7 @@ import { MenuDropdown, MenuItem } from "./MenuDropdown";
 import { useSelectedSeq } from "../stores/selectedSeqStore";
 import { useThemeId } from "../stores/themeStore";
 import type { Preferences } from "../hooks/usePreferences";
+import { canvasDpr } from "../utils/platform";
 
 const ROW_HEIGHT = 22;
 const ARROW_COL_WIDTH = 20;
@@ -689,7 +690,7 @@ export default function TraceTable({
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvasSize.width === 0) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasDpr();
     const targetW = Math.round(canvasSize.width * dpr);
     const targetH = Math.round(canvasSize.height * dpr);
     // 尺寸未变时跳过：canvas.width/height 赋值即使值相同也会清空画布 + 重新分配 GPU 纹理
@@ -1805,7 +1806,7 @@ export default function TraceTable({
     if (!ctxOrNull) return;
     const ctx: CanvasRenderingContext2D = ctxOrNull;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasDpr();
     ctx.save();
     ctx.scale(dpr, dpr);
     const W = canvasSize.width;

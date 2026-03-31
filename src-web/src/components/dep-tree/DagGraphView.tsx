@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useMemo, useEffect, useState } from "react"
 import { emit } from "@tauri-apps/api/event";
 import type { DependencyGraph } from "../../types/trace";
 import { DEPTH_COLORS } from "../../utils/depthColors";
+import { canvasDpr } from "../../utils/platform";
 
 // ── 常量 ──
 const NODE_W = 180;
@@ -186,7 +187,7 @@ export default function DagGraphView({ graph, sessionId, exprMode }: Props) {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
-    const dpr = devicePixelRatio;
+    const dpr = canvasDpr();
     canvas.width = container.clientWidth * dpr;
     canvas.height = container.clientHeight * dpr;
     canvas.style.width = container.clientWidth + "px";
@@ -253,7 +254,7 @@ export default function DagGraphView({ graph, sessionId, exprMode }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = devicePixelRatio;
+    const dpr = canvasDpr();
     const cw = canvas.width / dpr;
     const ch = canvas.height / dpr;
     const zoom = zoomRef.current;
