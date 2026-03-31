@@ -37,10 +37,12 @@ interface Props {
 const BYTES_PER_LINE = 16;
 const HISTORY_PAGE_SIZE = 500;
 const DEFAULT_LENGTH = 1024;
+const LENGTH_PRESETS = [256, 512, 1024, 2048, 4096, 8192, 16384];
 const HISTORY_ROW_HEIGHT = 20;
 const HEX_ROW_HEIGHT = 20;
 const ADDR_HISTORY_KEY = "memory-addr-search-history";
 const MAX_ADDR_HISTORY = 20;
+const MEM_LENGTH_KEY = "memory-hex-length";
 
 function formatHexByte(byte: number): string {
   return byte.toString(16).padStart(2, "0").toUpperCase();
@@ -98,6 +100,11 @@ export default function MemoryPanel({ selectedSeq: selectedSeqProp, isPhase2Read
   const [inputAddr, setInputAddr] = useState("");
   const [currentAddr, setCurrentAddr] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<MemorySnapshot | null>(null);
+  const [hexLength, setHexLength] = useState<number>(() => {
+    try { const v = parseInt(localStorage.getItem(MEM_LENGTH_KEY) || ""); return v > 0 ? v : DEFAULT_LENGTH; } catch { return DEFAULT_LENGTH; }
+  });
+  const [showLengthInput, setShowLengthInput] = useState(false);
+  const [customLengthInput, setCustomLengthInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyCenterIndex, setHistoryCenterIndex] = useState(0);
@@ -214,7 +221,7 @@ export default function MemoryPanel({ selectedSeq: selectedSeqProp, isPhase2Read
         sessionId,
         seq: selectedSeq,
         addr: currentAddr,
-        length: DEFAULT_LENGTH,
+        length: hexLength,
       })
         .then((s) => {
           if (cancelled) return;
@@ -227,7 +234,7 @@ export default function MemoryPanel({ selectedSeq: selectedSeqProp, isPhase2Read
         });
     }, 80);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [selectedSeq, isPhase2Ready, currentAddr, sessionId]);
+  }, [selectedSeq, isPhase2Ready, currentAddr, sessionId, hexLength]);
 
   // 查询地址读写历史（分页加载，debounce 150ms）
   useEffect(() => {
@@ -639,6 +646,69 @@ export default function MemoryPanel({ selectedSeq: selectedSeqProp, isPhase2Read
         />
         Auto
       </label>
+      {/* 长度选择器 */}
+      <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+        <select
+          value={LENGTH_PRESETS.includes(hexLength) ? hexLength : "custom"}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "custom") {
+              setCustomLengthInput(String(hexLength));
+              setShowLengthInput(true);
+            } else {
+              const n = parseInt(val);
+              setHexLength(n);
+              localStorage.setItem(MEM_LENGTH_KEY, String(n));
+              setShowLengthInput(false);
+            }
+          }}
+          style={{
+            padding: "1px 4px", background: "var(--bg-input)", color: "var(--text-primary)",
+            border: "1px solid var(--border-color)", borderRadius: 3,
+            fontFamily: "var(--font-mono)", fontSize: "var(--font-size-sm)", cursor: "pointer",
+          }}
+        >
+          {LENGTH_PRESETS.map(v => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+          <option value="custom">{!LENGTH_PRESETS.includes(hexLength) ? hexLength : "Custom"}</option>
+        </select>
+        {showLengthInput && (
+          <input
+            type="text"
+            autoFocus
+            placeholder="bytes"
+            value={customLengthInput}
+            onChange={(e) => setCustomLengthInput(e.target.value.replace(/[^0-9]/g, ""))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const n = parseInt(customLengthInput);
+                if (n >= 16 && n <= 65536) {
+                  setHexLength(n);
+                  localStorage.setItem(MEM_LENGTH_KEY, String(n));
+                  setShowLengthInput(false);
+                }
+              } else if (e.key === "Escape") {
+                setShowLengthInput(false);
+              }
+            }}
+            onBlur={() => {
+              const n = parseInt(customLengthInput);
+              if (n >= 16 && n <= 65536) {
+                setHexLength(n);
+                localStorage.setItem(MEM_LENGTH_KEY, String(n));
+              }
+              setShowLengthInput(false);
+            }}
+            style={{
+              width: 64, marginLeft: 4, padding: "1px 4px",
+              background: "var(--bg-input)", color: "var(--text-primary)",
+              border: "1px solid var(--border-color)", borderRadius: 3,
+              fontFamily: "var(--font-mono)", fontSize: "var(--font-size-sm)",
+            }}
+          />
+        )}
+      </div>
       <div ref={addrInputWrapperRef} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
         <input
           type="text"
