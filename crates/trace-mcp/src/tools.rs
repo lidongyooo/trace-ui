@@ -17,8 +17,6 @@ use crate::types::*;
 const MAX_LINES: u32 = 100;
 // Referenced in: search_instructions description ("up to 200 results")
 const MAX_SEARCH: u32 = 200;
-// Referenced in: get_memory_history description ("up to 200 records")
-const MAX_HISTORY: usize = 200;
 // Referenced in: get_dependency_tree description ("up to 200 nodes")
 const MAX_DEP_NODES: u32 = 200;
 const DEFAULT_SEARCH: u32 = 30;
@@ -281,33 +279,6 @@ impl TraceToolHandler {
             .map_err(|e| e.to_string())
     }
 
-    #[tool(
-        name = "get_memory_history",
-        description = "Get the read/write access history for a memory address. \
-            Returns records showing every time this address was read or written, \
-            with the instruction that did it and the data value. \
-            Supports pagination with offset/limit."
-    )]
-    fn get_memory_history(&self, Parameters(req): Parameters<GetMemoryHistoryRequest>) -> Result<String, String> {
-        let sid = self.resolve_session(req.session_id)?;
-        let addr = parse_hex_addr(&req.address)?;
-        let limit = req.limit.min(MAX_HISTORY);
-
-        let meta = self.engine.get_mem_history_meta(&sid, addr, req.center_seq)
-            .map_err(|e| e.to_string())?;
-
-        let records = self.engine.get_mem_history_range(&sid, addr, req.offset, limit)
-            .map_err(|e| e.to_string())?;
-
-        Ok(json(&serde_json::json!({
-            "total": meta.total,
-            "center_index": meta.center_index,
-            "offset": req.offset,
-            "records": records,
-            "has_more": req.offset + records.len() < meta.total,
-        })))
-    }
-
     // ━━━━━━━━━━━━━━━━━━━━━━ 搜索与分析 ━━━━━━━━━━━━━━━━━━━━━━
 
     #[tool(
@@ -548,27 +519,6 @@ impl TraceToolHandler {
         }).await
     }
 
-    #[tool(
-        name = "get_def_use_chain",
-        description = "Get the definition-use chain for a register at a specific instruction. \
-            If the register is USED at this line, returns the upstream DEF (where it was last written). \
-            If the register is DEFined at this line, returns all downstream USEs until it's redefined. \
-            Register names are case-insensitive. \
-            Useful for tracking register value propagation."
-    )]
-    fn get_def_use_chain(&self, Parameters(req): Parameters<GetDefUseChainRequest>) -> Result<String, String> {
-        let sid = self.resolve_session(req.session_id)?;
-        match self.engine.get_def_use_chain(&sid, req.seq, &req.register.to_lowercase()) {
-            Ok(chain) => Ok(json(&chain)),
-            Err(e) => {
-                let available = self.engine.get_line_def_registers(&sid, req.seq)
-                    .map(|regs| format!(". Available defined registers at line {}: {}", req.seq, regs.join(", ")))
-                    .unwrap_or_default();
-                Err(format!("{}{}", e, available))
-            }
-        }
-    }
-
     // ━━━━━━━━━━━━━━━━━━━━━━ 结构信息 ━━━━━━━━━━━━━━━━━━━━━━
 
     fn collect_tree_to_depth(
@@ -652,31 +602,6 @@ impl TraceToolHandler {
             response["hint"] = serde_json::json!("Use get_string_xrefs with address and byte_len to find which instructions access a string.");
         }
         Ok(json(&response))
-    }
-
-    #[tool(
-        name = "get_string_xrefs",
-        description = "Get cross-references for a specific string: all instructions that \
-            read or write the string's memory address. Each xref includes the instruction \
-            address, disassembly, and read/write type."
-    )]
-    fn get_string_xrefs(&self, Parameters(req): Parameters<GetStringXRefsRequest>) -> Result<String, String> {
-        let sid = self.resolve_session(req.session_id)?;
-        let addr = parse_hex_addr(&req.address)?;
-        let limit = req.limit.min(100);
-        let all_xrefs = self.engine.get_string_xrefs(&sid, addr, req.byte_len)
-            .map_err(|e| e.to_string())?;
-        let total = all_xrefs.len() as u32;
-        let page: Vec<_> = all_xrefs.into_iter()
-            .skip(req.offset as usize)
-            .take(limit as usize)
-            .collect();
-        Ok(json(&serde_json::json!({
-            "xrefs": page,
-            "total": total,
-            "offset": req.offset,
-            "has_more": (req.offset + page.len() as u32) < total,
-        })))
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━ Batch 2: 组合工具 ━━━━━━━━━━━━━━━━━━━━━━

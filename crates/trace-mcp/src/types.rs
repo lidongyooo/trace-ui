@@ -48,24 +48,6 @@ pub struct GetMemoryRequest {
 
 fn default_mem_length() -> u32 { 64 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct GetMemoryHistoryRequest {
-    #[schemars(description = "Session ID (optional if only one session is open)")]
-    pub session_id: Option<String>,
-    #[schemars(description = "Memory address in hex (e.g. '0xbffff000')")]
-    pub address: String,
-    #[schemars(description = "Center the history view around this line number")]
-    pub center_seq: u32,
-    #[schemars(description = "Starting index in history records (for pagination, default: 0)")]
-    #[serde(default)]
-    pub offset: usize,
-    #[schemars(description = "Max records to return (default: 30, max: 200)")]
-    #[serde(default = "default_history_limit")]
-    pub limit: usize,
-}
-
-fn default_history_limit() -> usize { 30 }
-
 // ── 搜索与分析 ──
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -132,16 +114,6 @@ pub struct GetDependencyTreeRequest {
     pub max_nodes: Option<u32>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct GetDefUseChainRequest {
-    #[schemars(description = "Session ID (optional if only one session is open)")]
-    pub session_id: Option<String>,
-    #[schemars(description = "Line number (0-based)")]
-    pub seq: u32,
-    #[schemars(description = "Register name, case-insensitive (e.g. 'X0', 'SP', 'x29')")]
-    pub register: String,
-}
-
 // ── 结构信息 ──
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -178,24 +150,6 @@ pub struct GetStringsRequest {
 
 fn default_min_str_len() -> u32 { 4 }
 fn default_strings_limit() -> u32 { 50 }
-
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct GetStringXRefsRequest {
-    #[schemars(description = "Session ID (optional if only one session is open)")]
-    pub session_id: Option<String>,
-    #[schemars(description = "Memory address of the string in hex (e.g. '0xbffff000'), obtained from get_strings result")]
-    pub address: String,
-    #[schemars(description = "Byte length of the string (from get_strings result's byte_len field)")]
-    pub byte_len: u32,
-    #[schemars(description = "Pagination offset (default: 0)")]
-    #[serde(default)]
-    pub offset: u32,
-    #[schemars(description = "Max xrefs to return (default: 30, max: 100)")]
-    #[serde(default = "default_xref_limit")]
-    pub limit: u32,
-}
-
-fn default_xref_limit() -> u32 { 30 }
 
 // ── Batch 2 新增工具请求类型 ──
 
